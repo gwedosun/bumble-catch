@@ -1,4 +1,17 @@
-'use client';
+export const metadata = {
+  title: 'Radar de Curtidas',
+  description: 'Análise de perfis com carinho',
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="pt-BR">
+      <body style={{ margin: 0, padding: 0, backgroundColor: '#FFF5F7' }}>
+        {children}
+      </body>
+    </html>
+  );
+}
 
 import { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, ListPlus, Users, Ruler, MapPin, Target, Star, Briefcase, Heart } from "lucide-react";
@@ -72,20 +85,6 @@ function validarPerfil(obj) {
   };
 }
 
-export const metadata = {
-  title: 'Radar de Curtidas',
-  description: 'Análise de perfis',
-};
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="pt-BR">
-      <body style={{ margin: 0, padding: 0, backgroundColor: '#FFF5F7' }}>
-        {children}
-      </body>
-    </html>
-  );
-}
 
 export default function App() {
   const [perfis, setPerfis] = useState([]);
