@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, FileJson, ListPlus, Users, Ruler, MapPin, Target, Copy, Check, AlertCircle, Heart, Star, Briefcase } from "lucide-react";
+import { Plus, Trash2, ListPlus, Users, Ruler, MapPin, Target, Star, Briefcase, Heart } from "lucide-react";
 
 async function salvarPerfilNoBanco(perfil) {
   try {
@@ -50,10 +50,10 @@ function validarPerfil(obj) {
     erros.push("Profissão é obrigatória.");
   }
   if (!Number.isInteger(beleza) || beleza < 1 || beleza > 5) {
-    erros.push("Beleza deve ser um número inteiro de 1 a 5.");
+    erros.push("Beleza deve ser de 1 a 5.");
   }
   if (objetivos.length === 0 || objetivos.length > 2) {
-    erros.push("Selecione entre 1 e 2 objetivos.");
+    erros.push("Selecione de 1 a 2 objetivos.");
   }
 
   if (erros.length > 0) return { ok: false, erros };
@@ -74,9 +74,6 @@ function validarPerfil(obj) {
 
 export default function App() {
   const [perfis, setPerfis] = useState([]);
-  const [modo, setModo] = useState("manual");
-
-  // Form states
   const [idade, setIdade] = useState("");
   const [altura, setAltura] = useState("");
   const [localizacao, setLocalizacao] = useState("");
@@ -84,43 +81,31 @@ export default function App() {
   const [beleza, setBeleza] = useState("3");
   const [superswipe, setSuperswipe] = useState(false);
   const [objetivosSel, setObjetivosSel] = useState([]);
-  
   const [erroForm, setErroForm] = useState(null);
-  const [jsonTexto, setJsonTexto] = useState("");
-  const [erroJson, setErroJson] = useState(null);
-  const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
-    // Buscar dados do banco na inicialização
     fetch("/api/perfis")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setPerfis(data);
       })
-      .catch((err) => console.log("Erro ao carregar do banco local", err));
+      .catch((err) => console.log("Erro ao carregar registros do banco:", err));
   }, []);
 
   const stats = useMemo(() => {
     const total = perfis.length;
     if (total === 0) {
-      return { total: 0, mediaIdade: null, mediaAltura: null, mediaBeleza: null, localizacoes: [] };
+      return { total: 0, mediaIdade: null, mediaAltura: null, mediaBeleza: null };
     }
     const mediaIdade = perfis.reduce((s, p) => s + p.idade, 0) / total;
     const mediaAltura = perfis.reduce((s, p) => s + p.altura, 0) / total;
-    const mediaBeleza = perfis.reduce((s, p) => s + p.beleza, 0) / total;
-
-    const contarPor = (chave) => {
-      const mapa = new Map();
-      perfis.forEach((p) => mapa.set(p[chave], (mapa.get(p[chave]) || 0) + 1));
-      return [...mapa.entries()].sort((a, b) => b[1] - a[1]);
-    };
+    const mediaBeleza = perfis.reduce((s, p) => s + Number(p.beleza), 0) / total;
 
     return {
       total,
       mediaIdade: mediaIdade.toFixed(1),
       mediaAltura: mediaAltura.toFixed(2),
       mediaBeleza: mediaBeleza.toFixed(1),
-      localizacoes: contarPor("localizacao"),
     };
   }, [perfis]);
 
@@ -168,96 +153,158 @@ export default function App() {
     setObjetivosSel([]);
   }
 
-  function handleSubmitJson(e) {
-    e.preventDefault();
-    let dados;
-    try {
-      dados = JSON.parse(jsonTexto);
-    } catch {
-      setErroJson("JSON inválido — confira vírgulas e chaves.");
-      return;
-    }
-    const lista = Array.isArray(dados) ? dados : [dados];
-    const validos = [];
-    const erros = [];
-
-    lista.forEach((item, i) => {
-      const r = validarPerfil(item);
-      if (r.ok) validos.push(r.perfil);
-      else erros.push(`item ${i + 1}: ${r.erros.join(", ")}`);
-    });
-
-    if (validos.length === 0) {
-      setErroJson(erros[0] || "Nenhum perfil válido encontrado.");
-      return;
-    }
-
-    validos.forEach(adicionarPerfil);
-    setErroJson(erros.length > 0 ? `${validos.length} adicionados. Ignorados: ${erros.join(" | ")}` : null);
-    setJsonTexto("");
-  }
-
   function removerPerfil(id) {
     setPerfis((prev) => prev.filter((p) => p.id !== id));
-  }
-
-  function copiarJson() {
-    const texto = JSON.stringify(perfis.map(({ id, ...resto }) => resto), null, 2);
-    navigator.clipboard?.writeText(texto);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 1500);
   }
 
   return (
     <div className="rc-root">
       <style>{`
         .rc-root {
-          --bg: #0B0E1A;
-          --surface: #141827;
-          --surface-alt: #1B2036;
-          --border: #262C48;
-          --text: #F0F1F8;
-          --text-muted: #8890B0;
-          --accent: #FFB454;
-          --accent-soft: rgba(255, 180, 84, 0.14);
-          --data: #5EEAD4;
-          --data-soft: rgba(94, 234, 212, 0.12);
-          --danger: #FF6B6B;
-          font-family: 'Inter', sans-serif;
+          --bg: #FFF5F7;
+          --surface: #FFFFFF;
+          --surface-alt: #FFF0F5;
+          --border: #FAD2E1;
+          --text: #5A3E49;
+          --text-muted: #A37989;
+          
+          --pink-main: #FFB7C5;
+          --pink-soft: #FFE5EC;
+          --yellow-pastel: #FFF1C5;
+          --yellow-soft: #FFFBEA;
+          --green-pastel: #D8F3DC;
+          --green-soft: #F0FDF4;
+          --danger: #FF8296;
+
+          font-family: 'Nunito', 'Segoe UI', sans-serif;
           background: var(--bg);
           color: var(--text);
           min-height: 100vh;
-          padding: 40px 24px;
+          padding: 40px 20px;
         }
-        .rc-shell { max-width: 1080px; margin: 0 auto; }
-        .rc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .rc-shell { max-width: 980px; margin: 0 auto; }
+        .rc-header { text-align: center; margin-bottom: 28px; }
+        .rc-header h1 { font-size: 28px; color: #7A4B5C; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 6px 0; }
+        .rc-header p { color: var(--text-muted); font-size: 14px; margin: 0; }
+        .rc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         @media (max-width: 860px) { .rc-grid { grid-template-columns: 1fr; } }
-        .rc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
-        .rc-card-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; }
+        
+        .rc-card {
+          background: var(--surface);
+          border: 2px solid var(--border);
+          border-radius: 20px;
+          padding: 24px;
+          box-shadow: 0 8px 20px rgba(250, 210, 225, 0.3);
+        }
+        .rc-card-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #8C5B6C;
+          margin-bottom: 18px;
+        }
         .rc-field { margin-bottom: 14px; }
-        .rc-label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; }
-        .rc-input, .rc-select, .rc-textarea { width: 100%; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); font-size: 14px; }
+        .rc-label { display: block; font-size: 13px; font-weight: 600; color: #7A4B5C; margin-bottom: 6px; }
+        .rc-input, .rc-select {
+          width: 100%;
+          background: var(--surface-alt);
+          border: 1.5px solid var(--border);
+          border-radius: 12px;
+          padding: 10px 14px;
+          color: var(--text);
+          font-size: 14px;
+          outline: none;
+          box-sizing: border-box;
+        }
+        .rc-input:focus, .rc-select:focus {
+          border-color: var(--pink-main);
+          box-shadow: 0 0 0 3px rgba(255, 183, 197, 0.4);
+        }
         .rc-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .rc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background: var(--accent); color: #1A1200; border: none; border-radius: 8px; padding: 11px; font-weight: 600; cursor: pointer; }
+        .rc-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          background: var(--pink-main);
+          color: #5A2A38;
+          border: none;
+          border-radius: 14px;
+          padding: 12px;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          transition: transform 0.1s ease;
+          box-shadow: 0 4px 12px rgba(255, 183, 197, 0.5);
+        }
+        .rc-btn:hover { transform: translateY(-1px); background: #FFA8B8; }
         .rc-checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
-        .rc-chip { padding: 6px 12px; font-size: 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-alt); cursor: pointer; color: var(--text-muted); }
-        .rc-chip.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+        .rc-chip {
+          padding: 6px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          border-radius: 20px;
+          border: 1.5px solid var(--border);
+          background: var(--surface-alt);
+          cursor: pointer;
+          color: var(--text-muted);
+          transition: all 0.2s;
+        }
+        .rc-chip.active {
+          background: var(--yellow-pastel);
+          color: #6C5200;
+          border-color: #F7D070;
+        }
         .rc-stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .rc-stat { background: var(--data-soft); border: 1px solid rgba(94, 234, 212, 0.25); border-radius: 10px; padding: 10px; text-align: center; }
-        .rc-stat-value { font-size: 18px; font-weight: 600; color: var(--data); }
-        .rc-stat-label { font-size: 11px; color: var(--text-muted); }
-        .rc-profile { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 9px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .rc-profile-info { font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; }
-        .rc-badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #FFB45433; color: var(--accent); font-weight: bold; margin-left: 6px; }
+        .rc-stat {
+          background: var(--green-soft);
+          border: 1.5px solid #B7E4C7;
+          border-radius: 14px;
+          padding: 12px 8px;
+          text-align: center;
+        }
+        .rc-stat-value { font-size: 20px; font-weight: 800; color: #2D6A4F; }
+        .rc-stat-label { font-size: 11px; font-weight: 600; color: #52B788; }
+        
+        .rc-profile {
+          background: var(--surface-alt);
+          border: 1.5px solid var(--border);
+          border-radius: 14px;
+          padding: 12px 14px;
+          margin-bottom: 10px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .rc-profile-info { font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+        .rc-badge {
+          display: inline-block;
+          font-size: 10px;
+          padding: 3px 8px;
+          border-radius: 12px;
+          background: var(--yellow-pastel);
+          color: #7A5C00;
+          font-weight: 800;
+          margin-left: 6px;
+          border: 1px solid #F7D070;
+        }
       `}</style>
 
       <div className="rc-shell">
-        <h1 style={{ marginBottom: "20px" }}>Radar de Curtidas</h1>
+        <div className="rc-header">
+          <h1><Heart size={26} color="#FF8296" fill="#FFB7C5" /> Radar de Curtidas</h1>
+          <p>Organize seus perfis e preferências com carinho 💕</p>
+        </div>
 
         <div className="rc-grid">
           {/* Cadastro */}
           <div className="rc-card">
-            <p className="rc-card-title"><ListPlus size={15} /> Cadastrar Perfil</p>
+            <p className="rc-card-title"><ListPlus size={16} /> Cadastrar Perfil</p>
             
             <form onSubmit={handleSubmitManual}>
               <div className="rc-row2">
@@ -290,9 +337,9 @@ export default function App() {
                   </select>
                 </div>
                 <div className="rc-field" style={{ display: "flex", alignItems: "center", paddingTop: "20px" }}>
-                  <label style={{ cursor: "pointer", display: "flex", gap: "8px", alignItems: "center", fontSize: "13px" }}>
+                  <label style={{ cursor: "pointer", display: "flex", gap: "8px", alignItems: "center", fontSize: "13px", fontWeight: "600", color: "#7A4B5C" }}>
                     <input type="checkbox" checked={superswipe} onChange={(e) => setSuperswipe(e.target.checked)} />
-                    SuperSwipe? ⭐
+                    SuperSwipe ⭐
                   </label>
                 </div>
               </div>
@@ -313,53 +360,4 @@ export default function App() {
               </div>
 
               <button className="rc-btn" type="submit"><Plus size={16} /> Salvar Perfil</button>
-              {erroForm && <p style={{ color: "var(--danger)", fontSize: "12px", marginTop: "8px" }}>{erroForm}</p>}
-            </form>
-          </div>
-
-          {/* Estatísticas e Listagem */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div className="rc-card">
-              <p className="rc-card-title"><Ruler size={15} /> Médias Gerais</p>
-              <div className="rc-stat-grid">
-                <div className="rc-stat">
-                  <div className="rc-stat-value">{stats.mediaIdade ?? "—"}</div>
-                  <div className="rc-stat-label">Idade</div>
-                </div>
-                <div className="rc-stat">
-                  <div className="rc-stat-value">{stats.mediaAltura ?? "—"}m</div>
-                  <div className="rc-stat-label">Altura</div>
-                </div>
-                <div className="rc-stat">
-                  <div className="rc-stat-value">{stats.mediaBeleza ?? "—"}★</div>
-                  <div className="rc-stat-label">Beleza</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rc-card">
-              <p className="rc-card-title"><Users size={15} /> Registros ({perfis.length})</p>
-              <div>
-                {perfis.map((p) => (
-                  <div className="rc-profile" key={p.id}>
-                    <div className="rc-profile-info">
-                      <div>
-                        <strong>{p.idade} anos</strong>, {p.altura}m 
-                        {p.superswipe && <span className="rc-badge">SUPERSWIPE</span>}
-                      </div>
-                      <div><Briefcase size={11} /> {p.profissao} | <MapPin size={11} /> {p.localizacao}</div>
-                      <div><Star size={11} /> Beleza: {p.beleza}/5 | <Target size={11} /> {p.objetivos?.join(", ")}</div>
-                    </div>
-                    <button style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer" }} onClick={() => removerPerfil(p.id)}>
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+              {erroForm && <p style={{ color: "var(--danger)", fontSize: "12px", marginTop: "8px", fontWeight: "600" }}>{erro
