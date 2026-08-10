@@ -36,6 +36,7 @@ function validarPerfil(obj) {
   const profissao = obj.profissao ?? obj.profissão;
   const objetivos = Array.isArray(obj.objetivos) ? obj.objetivos : [];
   const superswipe = Boolean(obj.superswipe);
+  const conhecido = Boolean(obj.conhecido);
 
   if (!Number.isInteger(idade) || idade <= 0 || idade > 120) {
     erros.push("Idade precisa ser um número inteiro válido.");
@@ -67,6 +68,7 @@ function validarPerfil(obj) {
       profissao: profissao.trim(),
       beleza,
       superswipe,
+      conhecido,
       objetivos,
     },
   };
@@ -80,6 +82,7 @@ export default function App() {
   const [profissao, setProfissao] = useState("");
   const [beleza, setBeleza] = useState("3");
   const [superswipe, setSuperswipe] = useState(false);
+  const [conhecido, setConhecido] = useState(false);
   const [objetivosSel, setObjetivosSel] = useState([]);
   const [erroForm, setErroForm] = useState(null);
 
@@ -134,6 +137,7 @@ export default function App() {
       profissao,
       beleza,
       superswipe,
+      conhecido,
       objetivos: objetivosSel,
     });
 
@@ -150,6 +154,7 @@ export default function App() {
     setProfissao("");
     setBeleza("3");
     setSuperswipe(false);
+    setConhecido(false);
     setObjetivosSel([]);
   }
 
@@ -293,11 +298,16 @@ export default function App() {
           margin-left: 6px;
           border: 1px solid #F7D070;
         }
+        .rc-badge-green {
+          background: var(--green-pastel);
+          color: #1B4332;
+          border-color: #B7E4C7;
+        }
       `}</style>
 
       <div className="rc-shell">
         <div className="rc-header">
-          <h1><Heart size={26} color="#FF8296" fill="#FFB7C5" />Bumble Catch 🐝</h1>
+          <h1><Heart size={26} color="#FF8296" fill="#FFB7C5" /> Bumble Catch 🐝</h1>
           <p>Uma análise pouco detalhada. 💕</p>
         </div>
 
@@ -336,16 +346,20 @@ export default function App() {
                     {[1, 2, 3, 4, 5].map((n) => (<option key={n} value={n}>{n} ★</option>))}
                   </select>
                 </div>
-                <div className="rc-field" style={{ display: "flex", alignItems: "center", paddingTop: "20px" }}>
+                <div className="rc-field" style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "12px" }}>
                   <label style={{ cursor: "pointer", display: "flex", gap: "8px", alignItems: "center", fontSize: "13px", fontWeight: "600", color: "#7A4B5C" }}>
                     <input type="checkbox" checked={superswipe} onChange={(e) => setSuperswipe(e.target.checked)} />
                     SuperSwipe ⭐
+                  </label>
+                  <label style={{ cursor: "pointer", display: "flex", gap: "8px", alignItems: "center", fontSize: "13px", fontWeight: "600", color: "#7A4B5C" }}>
+                    <input type="checkbox" checked={conhecido} onChange={(e) => setConhecido(e.target.checked)} />
+                    Conhecido 👀
                   </label>
                 </div>
               </div>
 
               <div className="rc-field">
-                <label className="rc-label">Objetivos</label>
+                <label className="rc-label">Objetivos (Escolha até 2)</label>
                 <div className="rc-checkbox-group">
                   {OBJETIVOS_OPCOES.map((op) => (
                     <span
@@ -396,6 +410,7 @@ export default function App() {
                         <div>
                           <strong>{p.idade} anos</strong>, {p.altura}m 
                           {p.superswipe && <span className="rc-badge">SUPERSWIPE</span>}
+                          {p.conhecido && <span className="rc-badge rc-badge-green">CONHECIDO</span>}
                         </div>
                         <div><Briefcase size={11} /> {p.profissao} | <MapPin size={11} /> {p.localizacao}</div>
                         <div><Star size={11} /> Beleza: {p.beleza}/5 | <Target size={11} /> {p.objetivos?.join(", ")}</div>
