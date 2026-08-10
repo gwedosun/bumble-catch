@@ -4,47 +4,63 @@ import { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, ListPlus, Users, Ruler, MapPin, Target, Star, Briefcase, Heart } from "lucide-react";
 import { createClient } from '@supabase/supabase-js';
 
-// Conexão unificada com fallback direto
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://eagniasqrzrnambrhhev.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhZ25pYXNxcnpybmFtYnJoaGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzMTYxNzgsImV4cCI6MjEwMTg5MjE3OH0.jxQhPxCV4K66qChvXyRX-A227Cj27ghmgyzMaSLjJPE";
+// Função para obter o cliente Supabase de forma segura (Lazy Init)
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://eagniasqrzrnambrhhev.supabase.co";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_hSh92slvspBgjsgmxUPECQ_6eJN5D5E";
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  if (typeof window !== "undefined" && url && url.startsWith("http")) {
+    try {
+      return createClient(url, key);
+    } catch (e) {
+      console.error("Erro ao inicializar Supabase:", e);
+    }
+  }
+  return null;
+}
+
+const INICIAL_PERFIS = [
+  { id: 1, idade: 23, altura: 1.70, localizacao: 'Brasília', profissao: 'Estudante', beleza: 3, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar'] },
+  { id: 2, idade: 21, altura: 1.70, localizacao: 'Águas Claras', profissao: 'Estudante', beleza: 2, superswipe: false, conhecido: true, objetivos: ['Ver o que pode rolar'] },
+  { id: 3, idade: 22, altura: 1.70, localizacao: 'Jardim Botânico', profissao: 'Não informado', beleza: 2, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar'] },
+  { id: 4, idade: 20, altura: 1.72, localizacao: 'Brasília', profissao: 'Estudante', beleza: 3, superswipe: false, conhecido: false, objetivos: ['Relacionamento sério', 'Ver o que pode rolar'] },
+  { id: 5, idade: 26, altura: 1.70, localizacao: 'Riacho Fundo', profissao: 'Servidor Público', beleza: 4, superswipe: false, conhecido: false, objetivos: ['Relacionamento sério', 'Ver o que pode rolar'] },
+  { id: 6, idade: 29, altura: 1.74, localizacao: 'Gama', profissao: 'Publicitário', beleza: 3, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar'] },
+  { id: 7, idade: 20, altura: 1.79, localizacao: 'Brasília', profissao: 'Não informado', beleza: 2, superswipe: false, conhecido: false, objetivos: ['Relacionamento sério'] },
+  { id: 8, idade: 25, altura: 1.78, localizacao: 'Gama', profissao: 'Psicólogo', beleza: 2, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar', 'Relacionamento sério'] },
+  { id: 9, idade: 28, altura: 1.87, localizacao: 'Guará', profissao: 'Empresário', beleza: 2, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar'] },
+  { id: 10, idade: 27, altura: 1.68, localizacao: 'Lago Norte', profissao: 'Advogado', beleza: 4, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar', 'Algo casual'] },
+  { id: 11, idade: 25, altura: 1.70, localizacao: 'Santa Maria', profissao: 'Veterinário', beleza: 3, superswipe: false, conhecido: false, objetivos: ['Relacionamento sério', 'Encontrar alguém para a vida'] },
+  { id: 12, idade: 27, altura: 1.80, localizacao: 'Guará', profissao: 'Pintor', beleza: 3, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar', 'Relacionamento sério'] },
+  { id: 13, idade: 24, altura: 1.83, localizacao: 'Taguatinga', profissao: 'Editor', beleza: 2, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar', 'Algo casual'] },
+  { id: 14, idade: 21, altura: 1.70, localizacao: 'Samambaia', profissao: 'Não informado', beleza: 1, superswipe: false, conhecido: false, objetivos: ['Ver o que pode rolar', 'Relacionamento sério'] },
+  { id: 15, idade: 21, altura: 1.68, localizacao: 'Samambaia', profissao: 'Geografia', beleza: 3, superswipe: false, conhecido: false, objetivos: ['Relacionamento sério'] },
+  { id: 16, idade: 21, altura: 1.70, localizacao: 'Sobradinho', profissao: 'Não informado', beleza: 4, superswipe: false, conhecido: false, objetivos: ['Não monogamia ética', 'Ver o que pode rolar'] },
+  { id: 17, idade: 26, altura: 1.62, localizacao: 'Águas Claras', profissao: 'Medicina', beleza: 3, superswipe: false, conhecido: true, objetivos: ['Relacionamento sério', 'Ver o que pode rolar'] }
+];
 
 async function salvarPerfilNoBanco(perfil) {
-  // 1. Backup local no navegador
   try {
     const salvosLocais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
     localStorage.setItem('perfis_backup', JSON.stringify([perfil, ...salvosLocais]));
-    console.log("💾 Salvo no backup local (localStorage)!");
-  } catch (errLocal) {
-    console.error("Erro no backup local:", errLocal);
-  }
+  } catch (e) {}
 
-  // 2. Envio para o Supabase
-  try {
-    const dadosParaEnviar = {
-      idade: Number(perfil.idade),
-      altura: Number(perfil.altura),
-      localizacao: perfil.localizacao,
-      profissao: perfil.profissao,
-      beleza: Number(perfil.beleza),
-      superswipe: Boolean(perfil.superswipe),
-      conhecido: Boolean(perfil.conhecido),
-      objetivos: perfil.objetivos,
-    };
-
-    const { data, error } = await supabase
-      .from('perfis')
-      .insert([dadosParaEnviar])
-      .select();
-
-    if (error) {
-      console.error("❌ ERRO DO SUPABASE:", error.message);
-    } else {
-      console.log("✅ SALVO NO SUPABASE:", data);
+  const client = getSupabaseClient();
+  if (client) {
+    try {
+      await client.from('perfis').insert([{
+        idade: Number(perfil.idade),
+        altura: Number(perfil.altura),
+        localizacao: perfil.localizacao,
+        profissao: perfil.profissao,
+        beleza: Number(perfil.beleza),
+        superswipe: Boolean(perfil.superswipe),
+        conhecido: Boolean(perfil.conhecido),
+        objetivos: perfil.objetivos,
+      }]);
+    } catch (err) {
+      console.error("Erro ao salvar no Supabase:", err);
     }
-  } catch (err) {
-    console.error("💥 Erro ao conectar com o Supabase:", err);
   }
 }
 
@@ -57,8 +73,6 @@ const OBJETIVOS_OPCOES = [
   "Encontrar alguém para a vida",
 ];
 
-let nextId = 1;
-
 function validarPerfil(obj) {
   const erros = [];
   const idade = Number(obj.idade);
@@ -70,24 +84,12 @@ function validarPerfil(obj) {
   const superswipe = Boolean(obj.superswipe);
   const conhecido = Boolean(obj.conhecido);
 
-  if (!Number.isInteger(idade) || idade <= 0 || idade > 120) {
-    erros.push("Idade precisa ser um número inteiro válido.");
-  }
-  if (typeof altura !== "number" || Number.isNaN(altura) || altura <= 0 || altura > 3) {
-    erros.push("Altura precisa ser em metros (ex: 1.75).");
-  }
-  if (typeof localizacao !== "string" || localizacao.trim() === "") {
-    erros.push("Localização é obrigatória.");
-  }
-  if (typeof profissao !== "string" || profissao.trim() === "") {
-    erros.push("Profissão é obrigatória.");
-  }
-  if (!Number.isInteger(beleza) || beleza < 1 || beleza > 5) {
-    erros.push("Beleza deve ser de 1 a 5.");
-  }
-  if (objetivos.length === 0 || objetivos.length > 2) {
-    erros.push("Selecione de 1 a 2 objetivos.");
-  }
+  if (!Number.isInteger(idade) || idade <= 0 || idade > 120) erros.push("Idade inválida.");
+  if (typeof altura !== "number" || Number.isNaN(altura) || altura <= 0 || altura > 3) erros.push("Altura inválida.");
+  if (typeof localizacao !== "string" || localizacao.trim() === "") erros.push("Localização é obrigatória.");
+  if (typeof profissao !== "string" || profissao.trim() === "") erros.push("Profissão é obrigatória.");
+  if (!Number.isInteger(beleza) || beleza < 1 || beleza > 5) erros.push("Beleza deve ser de 1 a 5.");
+  if (objetivos.length === 0 || objetivos.length > 2) erros.push("Selecione de 1 a 2 objetivos.");
 
   if (erros.length > 0) return { ok: false, erros };
 
@@ -107,7 +109,7 @@ function validarPerfil(obj) {
 }
 
 export default function App() {
-  const [perfis, setPerfis] = useState([]);
+  const [perfis, setPerfis] = useState(INICIAL_PERFIS);
   const [idade, setIdade] = useState("");
   const [altura, setAltura] = useState("");
   const [localizacao, setLocalizacao] = useState("");
@@ -120,29 +122,21 @@ export default function App() {
 
   useEffect(() => {
     async function carregarPerfis() {
-      let perfisEncontrados = [];
-
-      try {
-        const { data, error } = await supabase
-          .from('perfis')
-          .select('*')
-          .order('id', { ascending: false });
-
-        if (!error && Array.isArray(data) && data.length > 0) {
-          perfisEncontrados = data;
-        }
-      } catch (e) {
-        console.error("Erro ao carregar do Supabase:", e);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { data, error } = await client.from('perfis').select('*').order('id', { ascending: false });
+          if (!error && Array.isArray(data) && data.length > 0) {
+            setPerfis(data);
+            return;
+          }
+        } catch (e) {}
       }
-
-      if (perfisEncontrados.length === 0) {
-        const locais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
-        if (locais.length > 0) {
-          perfisEncontrados = locais.map((p, index) => ({ id: p.id || index + 1000, ...p }));
-        }
+      
+      const locais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
+      if (locais.length > 0) {
+        setPerfis([...locais, ...INICIAL_PERFIS]);
       }
-
-      setPerfis(perfisEncontrados);
     }
 
     carregarPerfis();
@@ -150,9 +144,7 @@ export default function App() {
 
   const stats = useMemo(() => {
     const total = perfis.length;
-    if (total === 0) {
-      return { total: 0, mediaIdade: null, mediaAltura: null, mediaBeleza: null };
-    }
+    if (total === 0) return { total: 0, mediaIdade: null, mediaAltura: null, mediaBeleza: null };
     const mediaIdade = perfis.reduce((s, p) => s + Number(p.idade), 0) / total;
     const mediaAltura = perfis.reduce((s, p) => s + Number(p.altura), 0) / total;
     const mediaBeleza = perfis.reduce((s, p) => s + Number(p.beleza), 0) / total;
@@ -166,7 +158,7 @@ export default function App() {
   }, [perfis]);
 
   async function adicionarPerfil(perfil) {
-    const novo = { id: nextId++, ...perfil };
+    const novo = { id: Date.now(), ...perfil };
     setPerfis((prev) => [novo, ...prev]);
     await salvarPerfilNoBanco(perfil);
   }
@@ -174,24 +166,15 @@ export default function App() {
   function handleObjetivoToggle(opcao) {
     if (objetivosSel.includes(opcao)) {
       setObjetivosSel(objetivosSel.filter((o) => o !== opcao));
-    } else {
-      if (objetivosSel.length < 2) {
-        setObjetivosSel([...objetivosSel, opcao]);
-      }
+    } else if (objetivosSel.length < 2) {
+      setObjetivosSel([...objetivosSel, opcao]);
     }
   }
 
   function handleSubmitManual(e) {
     e.preventDefault();
     const resultado = validarPerfil({
-      idade,
-      altura,
-      localizacao,
-      profissao,
-      beleza,
-      superswipe,
-      conhecido,
-      objetivos: objetivosSel,
+      idade, altura, localizacao, profissao, beleza, superswipe, conhecido, objetivos: objetivosSel,
     });
 
     if (!resultado.ok) {
@@ -201,27 +184,15 @@ export default function App() {
 
     setErroForm(null);
     adicionarPerfil(resultado.perfil);
-    setIdade("");
-    setAltura("");
-    setLocalizacao("");
-    setProfissao("");
-    setBeleza("3");
-    setSuperswipe(false);
-    setConhecido(false);
-    setObjetivosSel([]);
+    setIdade(""); setAltura(""); setLocalizacao(""); setProfissao(""); setBeleza("3");
+    setSuperswipe(false); setConhecido(false); setObjetivosSel([]);
   }
 
   async function removerPerfil(id) {
     setPerfis((prev) => prev.filter((p) => p.id !== id));
-    
-    const salvosLocais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
-    const atualizadosLocais = salvosLocais.filter((p) => p.id !== id);
-    localStorage.setItem('perfis_backup', JSON.stringify(atualizadosLocais));
-
-    try {
-      await supabase.from('perfis').delete().eq('id', id);
-    } catch (err) {
-      console.error("Erro ao remover no Supabase:", err);
+    const client = getSupabaseClient();
+    if (client) {
+      try { await client.from('perfis').delete().eq('id', id); } catch (e) {}
     }
   }
 
@@ -229,26 +200,12 @@ export default function App() {
     <div className="rc-root">
       <style>{`
         .rc-root {
-          --bg: #FFF5F7;
-          --surface: #FFFFFF;
-          --surface-alt: #FFF0F5;
-          --border: #FAD2E1;
-          --text: #5A3E49;
-          --text-muted: #A37989;
-          
-          --pink-main: #FFB7C5;
-          --pink-soft: #FFE5EC;
-          --yellow-pastel: #FFF1C5;
-          --yellow-soft: #FFFBEA;
-          --green-pastel: #D8F3DC;
-          --green-soft: #F0FDF4;
-          --danger: #FF8296;
-
+          --bg: #FFF5F7; --surface: #FFFFFF; --surface-alt: #FFF0F5;
+          --border: #FAD2E1; --text: #5A3E49; --text-muted: #A37989;
+          --pink-main: #FFB7C5; --pink-soft: #FFE5EC; --yellow-pastel: #FFF1C5;
+          --green-pastel: #D8F3DC; --green-soft: #F0FDF4; --danger: #FF8296;
           font-family: 'Nunito', 'Segoe UI', sans-serif;
-          background: var(--bg);
-          color: var(--text);
-          min-height: 100vh;
-          padding: 40px 20px;
+          background: var(--bg); color: var(--text); min-height: 100vh; padding: 40px 20px;
         }
         .rc-shell { max-width: 980px; margin: 0 auto; }
         .rc-header { text-align: center; margin-bottom: 28px; }
@@ -256,116 +213,25 @@ export default function App() {
         .rc-header p { color: var(--text-muted); font-size: 14px; margin: 0; }
         .rc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         @media (max-width: 860px) { .rc-grid { grid-template-columns: 1fr; } }
-        
-        .rc-card {
-          background: var(--surface);
-          border: 2px solid var(--border);
-          border-radius: 20px;
-          padding: 24px;
-          box-shadow: 0 8px 20px rgba(250, 210, 225, 0.3);
-        }
-        .rc-card-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: #8C5B6C;
-          margin-bottom: 18px;
-        }
+        .rc-card { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 24px; box-shadow: 0 8px 20px rgba(250, 210, 225, 0.3); }
+        .rc-card-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; text-transform: uppercase; color: #8C5B6C; margin-bottom: 18px; }
         .rc-field { margin-bottom: 14px; }
         .rc-label { display: block; font-size: 13px; font-weight: 600; color: #7A4B5C; margin-bottom: 6px; }
-        .rc-input, .rc-select {
-          width: 100%;
-          background: var(--surface-alt);
-          border: 1.5px solid var(--border);
-          border-radius: 12px;
-          padding: 10px 14px;
-          color: var(--text);
-          font-size: 14px;
-          outline: none;
-          box-sizing: border-box;
-        }
-        .rc-input:focus, .rc-select:focus {
-          border-color: var(--pink-main);
-          box-shadow: 0 0 0 3px rgba(255, 183, 197, 0.4);
-        }
+        .rc-input, .rc-select { width: 100%; background: var(--surface-alt); border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; box-sizing: border-box; }
         .rc-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .rc-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          width: 100%;
-          background: var(--pink-main);
-          color: #5A2A38;
-          border: none;
-          border-radius: 14px;
-          padding: 12px;
-          font-weight: 700;
-          font-size: 14px;
-          cursor: pointer;
-          transition: transform 0.1s ease;
-          box-shadow: 0 4px 12px rgba(255, 183, 197, 0.5);
-        }
-        .rc-btn:hover { transform: translateY(-1px); background: #FFA8B8; }
+        .rc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background: var(--pink-main); color: #5A2A38; border: none; border-radius: 14px; padding: 12px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 183, 197, 0.5); }
+        .rc-btn:hover { background: #FFA8B8; }
         .rc-checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
-        .rc-chip {
-          padding: 6px 14px;
-          font-size: 12px;
-          font-weight: 600;
-          border-radius: 20px;
-          border: 1.5px solid var(--border);
-          background: var(--surface-alt);
-          cursor: pointer;
-          color: var(--text-muted);
-          transition: all 0.2s;
-        }
-        .rc-chip.active {
-          background: var(--yellow-pastel);
-          color: #6C5200;
-          border-color: #F7D070;
-        }
+        .rc-chip { padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface-alt); cursor: pointer; color: var(--text-muted); }
+        .rc-chip.active { background: var(--yellow-pastel); color: #6C5200; border-color: #F7D070; }
         .rc-stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .rc-stat {
-          background: var(--green-soft);
-          border: 1.5px solid #B7E4C7;
-          border-radius: 14px;
-          padding: 12px 8px;
-          text-align: center;
-        }
+        .rc-stat { background: var(--green-soft); border: 1.5px solid #B7E4C7; border-radius: 14px; padding: 12px 8px; text-align: center; }
         .rc-stat-value { font-size: 20px; font-weight: 800; color: #2D6A4F; }
         .rc-stat-label { font-size: 11px; font-weight: 600; color: #52B788; }
-        
-        .rc-profile {
-          background: var(--surface-alt);
-          border: 1.5px solid var(--border);
-          border-radius: 14px;
-          padding: 12px 14px;
-          margin-bottom: 10px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
+        .rc-profile { background: var(--surface-alt); border: 1.5px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .rc-profile-info { font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
-        .rc-badge {
-          display: inline-block;
-          font-size: 10px;
-          padding: 3px 8px;
-          border-radius: 12px;
-          background: var(--yellow-pastel);
-          color: #7A5C00;
-          font-weight: 800;
-          margin-left: 6px;
-          border: 1px solid #F7D070;
-        }
-        .rc-badge-green {
-          background: var(--green-pastel);
-          color: #1B4332;
-          border-color: #B7E4C7;
-        }
+        .rc-badge { display: inline-block; font-size: 10px; padding: 3px 8px; border-radius: 12px; background: var(--yellow-pastel); color: #7A5C00; font-weight: 800; margin-left: 6px; border: 1px solid #F7D070; }
+        .rc-badge-green { background: var(--green-pastel); color: #1B4332; border-color: #B7E4C7; }
       `}</style>
 
       <div className="rc-shell">
@@ -375,10 +241,8 @@ export default function App() {
         </div>
 
         <div className="rc-grid">
-          {/* Cadastro */}
           <div className="rc-card">
             <p className="rc-card-title"><ListPlus size={16} /> Cadastrar Perfil</p>
-            
             <form onSubmit={handleSubmitManual}>
               <div className="rc-row2">
                 <div className="rc-field">
@@ -425,11 +289,7 @@ export default function App() {
                 <label className="rc-label">Objetivos (Escolha até 2)</label>
                 <div className="rc-checkbox-group">
                   {OBJETIVOS_OPCOES.map((op) => (
-                    <span
-                      key={op}
-                      className={`rc-chip ${objetivosSel.includes(op) ? "active" : ""}`}
-                      onClick={() => handleObjetivoToggle(op)}
-                    >
+                    <span key={op} className={`rc-chip ${objetivosSel.includes(op) ? "active" : ""}`} onClick={() => handleObjetivoToggle(op)}>
                       {op}
                     </span>
                   ))}
@@ -441,7 +301,6 @@ export default function App() {
             </form>
           </div>
 
-          {/* Estatísticas e Listagem */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div className="rc-card">
               <p className="rc-card-title"><Ruler size={16} /> Médias Gerais</p>
