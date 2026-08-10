@@ -4,39 +4,23 @@ import { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, ListPlus, Users, Ruler, MapPin, Target, Star, Briefcase, Heart } from "lucide-react";
 import { createClient } from '@supabase/supabase-js';
 
-// Conexão segura com validação de URL
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const isUrlValida = typeof supabaseUrl === 'string' && supabaseUrl.startsWith('http');
-
-const supabase = (isUrlValida && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null;
-
-
-// Insira a URL e ANON KEY direto aqui como fallback
+// Conexão unificada com fallback direto
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://eagniasqrzrnambrhhev.supabase.co";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_hSh92slvspBgjsgmxUPECQ_7eJN5D5E";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function salvarPerfilNoBanco(perfil) {
-  // 1. Garante o backup no navegador (localStorage) para NÃO PERDER NADA
+  // 1. Backup local no navegador
   try {
     const salvosLocais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
     localStorage.setItem('perfis_backup', JSON.stringify([perfil, ...salvosLocais]));
-    console.log("💾 Salvo no backup local (localStorage) com sucesso!");
+    console.log("💾 Salvo no backup local (localStorage)!");
   } catch (errLocal) {
-    console.error("Erro ao salvar no backup local:", errLocal);
+    console.error("Erro no backup local:", errLocal);
   }
 
-  // 2. Tenta salvar no Supabase
-  if (!supabase) {
-    console.error("⚠️ Supabase não inicializado. Verifique se as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão configuradas.");
-    return;
-  }
-
+  // 2. Envio para o Supabase
   try {
     const dadosParaEnviar = {
       idade: Number(perfil.idade),
@@ -55,12 +39,12 @@ async function salvarPerfilNoBanco(perfil) {
       .select();
 
     if (error) {
-      console.error("❌ ERRO DO SUPABASE:", error.message, error.details);
+      console.error("❌ ERRO DO SUPABASE:", error.message);
     } else {
-      console.log("✅ SALVO COM SUCESSO NO SUPABASE!", data);
+      console.log("✅ SALVO NO SUPABASE:", data);
     }
   } catch (err) {
-    console.error("💥 Erro de conexão com o Supabase:", err);
+    console.error("💥 Erro ao conectar com o Supabase:", err);
   }
 }
 
@@ -138,28 +122,23 @@ export default function App() {
     async function carregarPerfis() {
       let perfisEncontrados = [];
 
-      // 1. Tenta carregar do Supabase
-      if (supabase) {
-        try {
-          const { data, error } = await supabase
-            .from('perfis')
-            .select('*')
-            .order('id', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('perfis')
+          .select('*')
+          .order('id', { ascending: false });
 
-          if (!error && Array.isArray(data) && data.length > 0) {
-            perfisEncontrados = data;
-          }
-        } catch (e) {
-          console.error("Erro ao carregar do Supabase:", e);
+        if (!error && Array.isArray(data) && data.length > 0) {
+          perfisEncontrados = data;
         }
+      } catch (e) {
+        console.error("Erro ao carregar do Supabase:", e);
       }
 
-      // 2. Se o Supabase estiver vazio ou falhar, recupera o backup do localStorage
       if (perfisEncontrados.length === 0) {
         const locais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
         if (locais.length > 0) {
           perfisEncontrados = locais.map((p, index) => ({ id: p.id || index + 1000, ...p }));
-          console.log("⚠️ Carregando perfis do backup local do navegador.");
         }
       }
 
@@ -235,14 +214,14 @@ export default function App() {
   async function removerPerfil(id) {
     setPerfis((prev) => prev.filter((p) => p.id !== id));
     
-    // Remove do localStorage
     const salvosLocais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
     const atualizadosLocais = salvosLocais.filter((p) => p.id !== id);
     localStorage.setItem('perfis_backup', JSON.stringify(atualizadosLocais));
 
-    // Remove do Supabase se disponível
-    if (supabase) {
+    try {
       await supabase.from('perfis').delete().eq('id', id);
+    } catch (err) {
+      console.error("Erro ao remover no Supabase:", err);
     }
   }
 
