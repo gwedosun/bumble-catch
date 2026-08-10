@@ -360,4 +360,57 @@ export default function App() {
               </div>
 
               <button className="rc-btn" type="submit"><Plus size={16} /> Salvar Perfil</button>
-              {erroForm && <p style={{ color: "var(--danger)", fontSize: "12px", marginTop: "8px", fontWeight: "600" }}>{erro
+              {erroForm && <p style={{ color: "var(--danger)", fontSize: "12px", marginTop: "8px", fontWeight: "600" }}>{erroForm}</p>}
+            </form>
+          </div>
+
+          {/* Estatísticas e Listagem */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div className="rc-card">
+              <p className="rc-card-title"><Ruler size={16} /> Médias Gerais</p>
+              <div className="rc-stat-grid">
+                <div className="rc-stat">
+                  <div className="rc-stat-value">{stats.mediaIdade ?? "—"}</div>
+                  <div className="rc-stat-label">Idade</div>
+                </div>
+                <div className="rc-stat">
+                  <div className="rc-stat-value">{stats.mediaAltura ?? "—"}m</div>
+                  <div className="rc-stat-label">Altura</div>
+                </div>
+                <div className="rc-stat">
+                  <div className="rc-stat-value">{stats.mediaBeleza ?? "—"}★</div>
+                  <div className="rc-stat-label">Beleza</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rc-card">
+              <p className="rc-card-title"><Users size={16} /> Perfis Salvos ({perfis.length})</p>
+              <div>
+                {perfis.length === 0 ? (
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)", textAlign: "center", margin: "20px 0" }}>Nenhum perfil cadastrado ainda ✨</p>
+                ) : (
+                  perfis.map((p) => (
+                    <div className="rc-profile" key={p.id}>
+                      <div className="rc-profile-info">
+                        <div>
+                          <strong>{p.idade} anos</strong>, {p.altura}m 
+                          {p.superswipe && <span className="rc-badge">SUPERSWIPE</span>}
+                        </div>
+                        <div><Briefcase size={11} /> {p.profissao} | <MapPin size={11} /> {p.localizacao}</div>
+                        <div><Star size={11} /> Beleza: {p.beleza}/5 | <Target size={11} /> {p.objetivos?.join(", ")}</div>
+                      </div>
+                      <button style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer" }} onClick={() => removerPerfil(p.id)}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
