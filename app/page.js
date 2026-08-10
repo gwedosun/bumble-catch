@@ -297,8 +297,8 @@ export default function App() {
 
       <div className="rc-shell">
         <div className="rc-header">
-          <h1><Heart size={26} color="#FF8296" fill="#FFB7C5" /> Radar de Curtidas</h1>
-          <p>Organize seus perfis e preferências com carinho 💕</p>
+          <h1><Heart size={26} color="#FF8296" fill="#FFB7C5" />Bumble Catch 🐝</h1>
+          <p>Uma análise pouco detalhada. 💕</p>
         </div>
 
         <div className="rc-grid">
@@ -345,7 +345,7 @@ export default function App() {
               </div>
 
               <div className="rc-field">
-                <label className="rc-label">Objetivos (Escolha até 2)</label>
+                <label className="rc-label">Objetivos</label>
                 <div className="rc-checkbox-group">
                   {OBJETIVOS_OPCOES.map((op) => (
                     <span
