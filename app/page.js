@@ -14,6 +14,13 @@ const supabase = (isUrlValida && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
 
+
+// Insira a URL e ANON KEY direto aqui como fallback
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://eagniasqrzrnambrhhev.supabase.co";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_hSh92slvspBgjsgmxUPECQ_7eJN5D5E";
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
 async function salvarPerfilNoBanco(perfil) {
   // 1. Garante o backup no navegador (localStorage) para NÃO PERDER NADA
   try {
