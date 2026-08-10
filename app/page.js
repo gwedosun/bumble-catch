@@ -1,35 +1,34 @@
-// 'use client';
+'use client';
 
+import { useState, useMemo, useEffect } from "react";
+import { Plus, Trash2, ListPlus, Users, Ruler, MapPin, Target, Star, Briefcase, Heart } from "lucide-react";
 import { createClient } from '@supabase/supabase-js';
 
+// Conexão com o Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Inicialização segura
 const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
 
 async function salvarPerfilNoBanco(perfil) {
-  // 1. Salva SEMPRE no navegador (Garantia de não perda)
+  // 1. Garante o backup no navegador (localStorage) para NÃO PERDER NADA
   try {
     const salvosLocais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
     localStorage.setItem('perfis_backup', JSON.stringify([perfil, ...salvosLocais]));
-    console.log("💾 Perfil salvo no backup local (localStorage) com sucesso!");
+    console.log("💾 Salvo no backup local (localStorage) com sucesso!");
   } catch (errLocal) {
-    console.error("Erro no backup local:", errLocal);
+    console.error("Erro ao salvar no backup local:", errLocal);
   }
 
-  // 2. Validações de diagnóstico para o Supabase
+  // 2. Tenta salvar no Supabase
   if (!supabase) {
-    console.error("⚠️ SUPABASE NÃO CONFIGURADO: Verifique se NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão preenchidas no Netlify.");
+    console.error("⚠️ Supabase não inicializado. Verifique se as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão configuradas.");
     return;
   }
 
   try {
-    console.log("Enviando dados para o Supabase...", perfil);
-
-    // Formata o objeto no padrão do banco
     const dadosParaEnviar = {
       idade: Number(perfil.idade),
       altura: Number(perfil.altura),
@@ -38,7 +37,7 @@ async function salvarPerfilNoBanco(perfil) {
       beleza: Number(perfil.beleza),
       superswipe: Boolean(perfil.superswipe),
       conhecido: Boolean(perfil.conhecido),
-      objetivos: perfil.objetivos
+      objetivos: perfil.objetivos,
     };
 
     const { data, error } = await supabase
@@ -47,15 +46,15 @@ async function salvarPerfilNoBanco(perfil) {
       .select();
 
     if (error) {
-      console.error("❌ ERRO DO SUPABASE:", error.message, error.details, error.hint);
-      alert(`Erro no Supabase: ${error.message}`);
+      console.error("❌ ERRO DO SUPABASE:", error.message, error.details);
     } else {
       console.log("✅ SALVO COM SUCESSO NO SUPABASE!", data);
     }
   } catch (err) {
-    console.error("💥 Erro de conexão/execução com Supabase:", err);
+    console.error("💥 Erro de conexão com o Supabase:", err);
   }
 }
+
 const OBJETIVOS_OPCOES = [
   "Relacionamento sério",
   "Ver o que pode rolar",
@@ -127,43 +126,47 @@ export default function App() {
   const [erroForm, setErroForm] = useState(null);
 
   useEffect(() => {
-  async function carregarPerfis() {
-    let perfisEncontrados = [];
+    async function carregarPerfis() {
+      let perfisEncontrados = [];
 
-    // Tenta buscar no Supabase
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('perfis')
-        .select('*')
-        .order('id', { ascending: false });
+      // 1. Tenta carregar do Supabase
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('perfis')
+            .select('*')
+            .order('id', { ascending: false });
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        perfisEncontrados = data;
+          if (!error && Array.isArray(data) && data.length > 0) {
+            perfisEncontrados = data;
+          }
+        } catch (e) {
+          console.error("Erro ao carregar do Supabase:", e);
+        }
       }
+
+      // 2. Se o Supabase estiver vazio ou falhar, recupera o backup do localStorage
+      if (perfisEncontrados.length === 0) {
+        const locais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
+        if (locais.length > 0) {
+          perfisEncontrados = locais.map((p, index) => ({ id: p.id || index + 1000, ...p }));
+          console.log("⚠️ Carregando perfis do backup local do navegador.");
+        }
+      }
+
+      setPerfis(perfisEncontrados);
     }
 
-    // Se o banco não trouxe nada, carrega do backup do navegador
-    if (perfisEncontrados.length === 0) {
-      const locais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
-      if (locais.length > 0) {
-        perfisEncontrados = locais.map((p, index) => ({ id: index + 1000, ...p }));
-        console.log("⚠️ Exibindo perfis recuperados do backup do navegador.");
-      }
-    }
-
-    setPerfis(perfisEncontrados);
-  }
-
-  carregarPerfis();
-}, []);
+    carregarPerfis();
+  }, []);
 
   const stats = useMemo(() => {
     const total = perfis.length;
     if (total === 0) {
       return { total: 0, mediaIdade: null, mediaAltura: null, mediaBeleza: null };
     }
-    const mediaIdade = perfis.reduce((s, p) => s + p.idade, 0) / total;
-    const mediaAltura = perfis.reduce((s, p) => s + p.altura, 0) / total;
+    const mediaIdade = perfis.reduce((s, p) => s + Number(p.idade), 0) / total;
+    const mediaAltura = perfis.reduce((s, p) => s + Number(p.altura), 0) / total;
     const mediaBeleza = perfis.reduce((s, p) => s + Number(p.beleza), 0) / total;
 
     return {
@@ -220,8 +223,18 @@ export default function App() {
     setObjetivosSel([]);
   }
 
-  function removerPerfil(id) {
+  async function removerPerfil(id) {
     setPerfis((prev) => prev.filter((p) => p.id !== id));
+    
+    // Remove do localStorage
+    const salvosLocais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
+    const atualizadosLocais = salvosLocais.filter((p) => p.id !== id);
+    localStorage.setItem('perfis_backup', JSON.stringify(atualizadosLocais));
+
+    // Remove do Supabase se disponível
+    if (supabase) {
+      await supabase.from('perfis').delete().eq('id', id);
+    }
   }
 
   return (
@@ -382,22 +395,22 @@ export default function App() {
               <div className="rc-row2">
                 <div className="rc-field">
                   <label className="rc-label">Idade</label>
-                  <input className="rc-input" type="number" placeholder="" value={idade} onChange={(e) => setIdade(e.target.value)} />
+                  <input className="rc-input" type="number" placeholder="25" value={idade} onChange={(e) => setIdade(e.target.value)} />
                 </div>
                 <div className="rc-field">
                   <label className="rc-label">Altura (m)</label>
-                  <input className="rc-input" type="number" step="0.01" placeholder="" value={altura} onChange={(e) => setAltura(e.target.value)} />
+                  <input className="rc-input" type="number" step="0.01" placeholder="1.75" value={altura} onChange={(e) => setAltura(e.target.value)} />
                 </div>
               </div>
 
               <div className="rc-row2">
                 <div className="rc-field">
                   <label className="rc-label">Localização</label>
-                  <input className="rc-input" type="text" placeholder="" value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} />
+                  <input className="rc-input" type="text" placeholder="Brasília, DF" value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} />
                 </div>
                 <div className="rc-field">
                   <label className="rc-label">Profissão</label>
-                  <input className="rc-input" type="text" placeholder="" value={profissao} onChange={(e) => setProfissao(e.target.value)} />
+                  <input className="rc-input" type="text" placeholder="Engenheira" value={profissao} onChange={(e) => setProfissao(e.target.value)} />
                 </div>
               </div>
 
