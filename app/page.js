@@ -4,11 +4,13 @@ import { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, ListPlus, Users, Ruler, MapPin, Target, Star, Briefcase, Heart } from "lucide-react";
 import { createClient } from '@supabase/supabase-js';
 
-// Conexão com o Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Conexão segura com validação de URL
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const supabase = (supabaseUrl && supabaseAnonKey) 
+const isUrlValida = typeof supabaseUrl === 'string' && supabaseUrl.startsWith('http');
+
+const supabase = (isUrlValida && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
 
