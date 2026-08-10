@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Conexão unificada com fallback direto
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://eagniasqrzrnambrhhev.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_hSh92slvspBgjsgmxUPECQ_7eJN5D5E";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhZ25pYXNxcnpybmFtYnJoaGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzMTYxNzgsImV4cCI6MjEwMTg5MjE3OH0.jxQhPxCV4K66qChvXyRX-A227Cj27ghmgyzMaSLjJPE";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
