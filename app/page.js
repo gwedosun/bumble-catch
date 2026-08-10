@@ -320,22 +320,22 @@ export default function App() {
               <div className="rc-row2">
                 <div className="rc-field">
                   <label className="rc-label">Idade</label>
-                  <input className="rc-input" type="number" placeholder="25" value={idade} onChange={(e) => setIdade(e.target.value)} />
+                  <input className="rc-input" type="number" placeholder="" value={idade} onChange={(e) => setIdade(e.target.value)} />
                 </div>
                 <div className="rc-field">
                   <label className="rc-label">Altura (m)</label>
-                  <input className="rc-input" type="number" step="0.01" placeholder="1.75" value={altura} onChange={(e) => setAltura(e.target.value)} />
+                  <input className="rc-input" type="number" step="1.60" placeholder="1.75" value={altura} onChange={(e) => setAltura(e.target.value)} />
                 </div>
               </div>
 
               <div className="rc-row2">
                 <div className="rc-field">
                   <label className="rc-label">Localização</label>
-                  <input className="rc-input" type="text" placeholder="Brasília, DF" value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} />
+                  <input className="rc-input" type="text" placeholder="" value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} />
                 </div>
                 <div className="rc-field">
                   <label className="rc-label">Profissão</label>
-                  <input className="rc-input" type="text" placeholder="Engenheira" value={profissao} onChange={(e) => setProfissao(e.target.value)} />
+                  <input className="rc-input" type="text" placeholder="" value={profissao} onChange={(e) => setProfissao(e.target.value)} />
                 </div>
               </div>
 
