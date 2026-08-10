@@ -1,21 +1,61 @@
-'use client';
+// 'use client';
 
-import { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, ListPlus, Users, Ruler, MapPin, Target, Star, Briefcase, Heart } from "lucide-react";
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Inicialização segura
+const supabase = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey) 
+  : null;
 
 async function salvarPerfilNoBanco(perfil) {
+  // 1. Salva SEMPRE no navegador (Garantia de não perda)
   try {
-    const res = await fetch("/api/perfis", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(perfil),
-    });
-    return await res.json();
+    const salvosLocais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
+    localStorage.setItem('perfis_backup', JSON.stringify([perfil, ...salvosLocais]));
+    console.log("💾 Perfil salvo no backup local (localStorage) com sucesso!");
+  } catch (errLocal) {
+    console.error("Erro no backup local:", errLocal);
+  }
+
+  // 2. Validações de diagnóstico para o Supabase
+  if (!supabase) {
+    console.error("⚠️ SUPABASE NÃO CONFIGURADO: Verifique se NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão preenchidas no Netlify.");
+    return;
+  }
+
+  try {
+    console.log("Enviando dados para o Supabase...", perfil);
+
+    // Formata o objeto no padrão do banco
+    const dadosParaEnviar = {
+      idade: Number(perfil.idade),
+      altura: Number(perfil.altura),
+      localizacao: perfil.localizacao,
+      profissao: perfil.profissao,
+      beleza: Number(perfil.beleza),
+      superswipe: Boolean(perfil.superswipe),
+      conhecido: Boolean(perfil.conhecido),
+      objetivos: perfil.objetivos
+    };
+
+    const { data, error } = await supabase
+      .from('perfis')
+      .insert([dadosParaEnviar])
+      .select();
+
+    if (error) {
+      console.error("❌ ERRO DO SUPABASE:", error.message, error.details, error.hint);
+      alert(`Erro no Supabase: ${error.message}`);
+    } else {
+      console.log("✅ SALVO COM SUCESSO NO SUPABASE!", data);
+    }
   } catch (err) {
-    console.error("Erro ao salvar no banco:", err);
+    console.error("💥 Erro de conexão/execução com Supabase:", err);
   }
 }
-
 const OBJETIVOS_OPCOES = [
   "Relacionamento sério",
   "Ver o que pode rolar",
@@ -87,13 +127,35 @@ export default function App() {
   const [erroForm, setErroForm] = useState(null);
 
   useEffect(() => {
-    fetch("/api/perfis")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setPerfis(data);
-      })
-      .catch((err) => console.log("Erro ao carregar registros do banco:", err));
-  }, []);
+  async function carregarPerfis() {
+    let perfisEncontrados = [];
+
+    // Tenta buscar no Supabase
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('perfis')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        perfisEncontrados = data;
+      }
+    }
+
+    // Se o banco não trouxe nada, carrega do backup do navegador
+    if (perfisEncontrados.length === 0) {
+      const locais = JSON.parse(localStorage.getItem('perfis_backup') || '[]');
+      if (locais.length > 0) {
+        perfisEncontrados = locais.map((p, index) => ({ id: index + 1000, ...p }));
+        console.log("⚠️ Exibindo perfis recuperados do backup do navegador.");
+      }
+    }
+
+    setPerfis(perfisEncontrados);
+  }
+
+  carregarPerfis();
+}, []);
 
   const stats = useMemo(() => {
     const total = perfis.length;
