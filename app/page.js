@@ -324,7 +324,7 @@ export default function App() {
                 </div>
                 <div className="rc-field">
                   <label className="rc-label">Altura (m)</label>
-                  <input className="rc-input" type="number" step="1.60" placeholder="1.75" value={altura} onChange={(e) => setAltura(e.target.value)} />
+                  <input className="rc-input" type="number" step="1.60" placeholder="" value={altura} onChange={(e) => setAltura(e.target.value)} />
                 </div>
               </div>
 
