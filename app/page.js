@@ -3,6 +3,29 @@
 import { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, ListPlus, Users, Ruler, MapPin, Target, Star, Briefcase, Heart } from "lucide-react";
 
+import { createClient } from '@supabase/supabase-js';
+
+// Inicializa o cliente do Supabase com as chaves do Netlify
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+async function salvarPerfilNoBanco(perfil) {
+  try {
+    const { data, error } = await supabase
+      .from('perfis')
+      .insert([perfil]);
+
+    if (error) {
+      console.error("Erro do Supabase:", error.message);
+    } else {
+      console.log("Salvo no Supabase com sucesso!", data);
+    }
+  } catch (err) {
+    console.error("Erro inesperado:", err);
+  }
+}
+
 async function salvarPerfilNoBanco(perfil) {
   try {
     const res = await fetch("/api/perfis", {
